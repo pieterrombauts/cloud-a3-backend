@@ -1,6 +1,6 @@
 import type { AWS } from '@serverless/typescript'
 
-import { hello, register, login } from '@functions/index'
+import { hello, register, login, authorizer } from '@functions/index'
 
 const serverlessConfiguration: AWS = {
   service: 'auth',
@@ -36,13 +36,15 @@ const serverlessConfiguration: AWS = {
           'dynamodb:DeleteItem',
         ],
         Resource: [
-          'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}',
-          'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*',
+          'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}',
+          'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.USERS_TABLE}/index/*',
         ],
       },
     ],
     environment: {
-      DYNAMODB_TABLE: 'users-${opt:stage, self:provider.stage}',
+      USERS_TABLE: 'users-${opt:stage, self:provider.stage}',
+      JWT_SECRET:
+        'ljljnalekjhvavskhdgfkjhcbivbakjysegcbukwyacvuaksdhfgeciysbaciyberaiubgbaskf',
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
     },
     lambdaHashingVersion: '20201221',
@@ -53,6 +55,7 @@ const serverlessConfiguration: AWS = {
     hello,
     register,
     login,
+    authorizer,
   },
 
   resources: {
@@ -70,8 +73,8 @@ const serverlessConfiguration: AWS = {
             {
               IndexName: 'email-index',
               KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
-              NonKeyAttributes: ['password'],
               Projection: {
+                NonKeyAttributes: ['password'],
                 ProjectionType: 'INCLUDE',
               },
               ProvisionedThroughput: {
@@ -84,7 +87,7 @@ const serverlessConfiguration: AWS = {
             ReadCapacityUnits: 1,
             WriteCapacityUnits: 1,
           },
-          TableName: '${self:provider.environment.DYNAMODB_TABLE}',
+          TableName: '${self:provider.environment.USERS_TABLE}',
         },
       },
     },

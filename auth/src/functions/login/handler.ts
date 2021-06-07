@@ -8,11 +8,11 @@ import { formatJSONResponse } from '@libs/apiGateway'
 import { middyfy } from '@libs/lambda'
 
 import schema from './schema'
-import * as cuid from 'cuid'
 import * as argon2 from 'argon2'
 import jwt from 'jsonwebtoken'
 
 import { DynamoDB } from 'aws-sdk'
+import { getUserByEmail } from '@libs/authHelpers'
 
 const dynamoDb = new DynamoDB.DocumentClient()
 
@@ -20,37 +20,22 @@ const register: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
   event,
 ) => {
   try {
-    const result = await new Promise<DynamoDB.DocumentClient.QueryOutput>(
-      (resolve, reject) => {
-        dynamoDb.query(
-          {
-            TableName: process.env.DYNAMODB_TABLE,
-            IndexName: 'email-index',
-            KeyConditionExpression: 'email = :v_email',
-            ExpressionAttributeValues: {
-              ':v_email': event.body.email,
-            },
-          },
-          (error, result) => {
-            if (error) {
-              console.error(error)
-              reject(new Error('Something went wrong. Please try again!'))
-            }
-            resolve(result)
-          },
-        )
-      },
-    )
+    const user = await getUserByEmail(event.body.email)
 
-    const user = result.Items?.[0]
-    if (!(user && (await argon2.verify(user.password, event.body.password)))) {
+    if (!user) {
+      return formatJSONError(new Error('This email is not registered'))
+    }
+
+    if (await argon2.verify(user.password, event.body.password)) {
+      return formatJSONResponse({
+        token: jwt.sign({ userId: user.id }, process.env.JWT_SECRET),
+      })
+    } else {
       return formatJSONError(new Error('Invalid username or password'))
     }
-    return formatJSONResponse({
-      token: jwt.sign(user.id, process.env.JWT_SECRET),
-    })
   } catch (error) {
-    formatJSONError(error)
+    console.error(error)
+    formatJSONError(new Error('Something went wrong. Please try again!'))
   }
 }
 

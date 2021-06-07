@@ -12,6 +12,7 @@ import * as cuid from 'cuid'
 import * as argon2 from 'argon2'
 
 import { DynamoDB } from 'aws-sdk'
+import { getCurrentUser, getUserByEmail } from '@libs/authHelpers'
 
 const dynamoDb = new DynamoDB.DocumentClient()
 
@@ -21,8 +22,11 @@ const register: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
   try {
     const timestamp = new Date().getTime()
 
+    if (await getUserByEmail(event.body.email)) {
+      return formatJSONError(new Error('Email already taken'))
+    }
     const params = {
-      TableName: process.env.DYNAMODB_TABLE,
+      TableName: process.env.USERS_TABLE,
       Item: {
         id: cuid(),
         firstName: event.body.firstName,
@@ -34,12 +38,7 @@ const register: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
       },
     }
 
-    await new Promise((resolve, reject) => {
-      dynamoDb.put(params, (error, result) => {
-        if (error) reject(error)
-        resolve(result)
-      })
-    })
+    await dynamoDb.put(params).promise()
 
     return formatJSONResponse(params.Item)
   } catch {

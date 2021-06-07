@@ -7,6 +7,7 @@ export const hello = {
     {
       http: {
         method: 'post',
+        authorizer: 'authorizer',
         path: 'hello',
         request: {
           schema: {
