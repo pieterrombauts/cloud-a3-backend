@@ -10,6 +10,7 @@ import { middyfy } from '@libs/lambda'
 import schema from './schema'
 import * as cuid from 'cuid'
 import * as argon2 from 'argon2'
+import jwt from 'jsonwebtoken'
 
 import { DynamoDB } from 'aws-sdk'
 
@@ -45,7 +46,9 @@ const register: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
     if (!(user && (await argon2.verify(user.password, event.body.password)))) {
       return formatJSONError(new Error('Invalid username or password'))
     }
-    return formatJSONResponse({ items: user })
+    return formatJSONResponse({
+      token: jwt.sign(user.id, process.env.JWT_SECRET),
+    })
   } catch (error) {
     formatJSONError(error)
   }
