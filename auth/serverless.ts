@@ -1,6 +1,6 @@
 import type { AWS } from '@serverless/typescript'
 
-import { hello, register } from '@functions/index'
+import { hello, register, login } from '@functions/index'
 
 const serverlessConfiguration: AWS = {
   service: 'auth',
@@ -35,8 +35,10 @@ const serverlessConfiguration: AWS = {
           'dynamodb:UpdateItem',
           'dynamodb:DeleteItem',
         ],
-        Resource:
+        Resource: [
           'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}',
+          'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}/index/*',
+        ],
       },
     ],
     environment: {
@@ -50,6 +52,7 @@ const serverlessConfiguration: AWS = {
   functions: {
     hello,
     register,
+    login,
   },
 
   resources: {
@@ -59,15 +62,22 @@ const serverlessConfiguration: AWS = {
         DeletionPolicy: 'Retain',
         Properties: {
           AttributeDefinitions: [
-            {
-              AttributeName: 'id',
-              AttributeType: 'S',
-            },
+            { AttributeName: 'id', AttributeType: 'S' },
+            { AttributeName: 'email', AttributeType: 'S' },
           ],
-          KeySchema: [
+          KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+          GlobalSecondaryIndexes: [
             {
-              AttributeName: 'id',
-              KeyType: 'HASH',
+              IndexName: 'email-index',
+              KeySchema: [{ AttributeName: 'email', KeyType: 'HASH' }],
+              NonKeyAttributes: ['password'],
+              Projection: {
+                ProjectionType: 'INCLUDE',
+              },
+              ProvisionedThroughput: {
+                ReadCapacityUnits: 1,
+                WriteCapacityUnits: 1,
+              },
             },
           ],
           ProvisionedThroughput: {
