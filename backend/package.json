@@ -22,6 +22,7 @@
   "devDependencies": {
     "@serverless/typescript": "^2.23.0",
     "@types/aws-lambda": "^8.10.71",
+    "aws-sdk": "^2.826.0",
     "@types/node": "^14.14.25",
     "json-schema-to-ts": "^1.5.0",
     "serverless": "^2.23.0",

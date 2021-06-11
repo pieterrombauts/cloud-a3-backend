@@ -17,7 +17,8 @@ const getUploadLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
   try {
     const s3 = new S3({
       region: 'ap-southeast-2',
-      useAccelerateEndpoint: true,
+      // useAccelerateEndpoint: true,
+      signatureVersion: 'v4',
     });
 
     const fileName = event.body.fileName;
@@ -29,11 +30,11 @@ const getUploadLink: ValidatedEventAPIGatewayProxyEvent<typeof schema> = async (
     const params = {
       Bucket: UPLOADS_BUCKET_NAME,
       Key: s3Key,
-      ResponseContentType: fileType,
+      ContentType: fileType,
       Expires: 1800,
     };
 
-    const signedUrl = await s3.getSignedUrlPromise('getObject', params);
+    const signedUrl = await s3.getSignedUrlPromise('putObject', params);
 
     return formatJSONResponse({
       signedUrl: signedUrl,
