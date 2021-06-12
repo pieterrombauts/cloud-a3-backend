@@ -8,3 +8,4 @@ export { getUploadLink } from './getUploadLink';
 export { updateUser } from './updateUser';
 
 export { favouriteSatellite } from './favouriteSatellite';
+export { unfavouriteSatellite } from './unfavouriteSatellite';
